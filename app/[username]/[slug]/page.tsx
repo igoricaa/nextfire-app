@@ -15,23 +15,21 @@ import AuthCheck from '@/components/AuthCheck';
 import Link from 'next/link';
 import HeartButton from '@/components/HeartButton';
 
-export const getPost = cache(
-  async (username: string, slug: string): Promise<any> => {
-    const userDoc = await getUserWithUsername(username);
+const getPost = cache(async (username: string, slug: string): Promise<any> => {
+  const userDoc = await getUserWithUsername(username);
 
-    let post = null;
-    let path = null;
+  let post = null;
+  let path = null;
 
-    if (userDoc) {
-      const postRef = doc(firestore, userDoc.ref.path, 'posts', slug);
-      const docSnap = await getDoc(postRef);
-      post = postToJSON(docSnap);
-      path = postRef.path;
-    }
-
-    return { post, path };
+  if (userDoc) {
+    const postRef = doc(firestore, userDoc.ref.path, 'posts', slug);
+    const docSnap = await getDoc(postRef);
+    post = postToJSON(docSnap);
+    path = postRef.path;
   }
-);
+
+  return { post, path };
+});
 
 export const dynamicParams = true;
 
