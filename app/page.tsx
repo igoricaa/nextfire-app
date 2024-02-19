@@ -1,95 +1,85 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
+import Loader from '@/components/Loader';
+import PostFeed from '@/components/PostFeed';
+import { firestore, postToJSON } from '@/lib/firebase';
+import {
+  collectionGroup,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  startAfter,
+  where,
+} from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+
+const LIMIT = 10;
+
+interface Props {
+  posts: any[];
+}
+
+export default function Home(props: Props) {
+  const [posts, setPosts] = useState(props.posts);
+  const [loading, setLoading] = useState(false);
+  const [postsEnd, setPostsEnd] = useState(false);
+
+  // TODO: Refactor into custom hook
+  // TODO: server action??
+  // TODO: prebaci sav state u PostsList recimo, Home nece biti client side pa cu moci da koristim
+  // server actions ili ce moci biti async ili generateStaticProps
+  useEffect(() => {
+    const getPosts = async () => {
+      setLoading(true);
+      const postsQuery = query(
+        collectionGroup(firestore, 'posts'),
+        where('published', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(LIMIT)
+      );
+
+      const postsNew = (await getDocs(postsQuery)).docs.map(postToJSON);
+
+      setPosts(postsNew);
+      setLoading(false);
+    };
+    getPosts();
+  }, []);
+
+  const getMorePosts = async () => {
+    setLoading(true);
+    const last = posts[posts.length - 1];
+
+    const cursor = query(
+      collectionGroup(firestore, 'posts'),
+      where('published', '==', true),
+      orderBy('createdAt', 'desc'),
+      startAfter(last.createdAt),
+      limit(LIMIT)
+    );
+
+    const newPosts = (await getDocs(cursor)).docs.map(postToJSON);
+
+    setPosts(posts.concat(newPosts));
+    setLoading(false);
+
+    if (newPosts.length < LIMIT) {
+      setPostsEnd(true);
+    }
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <main>
+      <PostFeed posts={posts} admin={false} />
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+      {!loading && !postsEnd && (
+        <button onClick={getMorePosts}>Load more</button>
+      )}
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
+      <Loader show={loading} />
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      {postsEnd && 'You have reached the end!'}
     </main>
   );
 }
