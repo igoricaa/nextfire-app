@@ -16,11 +16,7 @@ import { useEffect, useState } from 'react';
 
 const LIMIT = 10;
 
-interface Props {
-  posts: any[];
-}
-
-export default function Home(props: Props) {
+export default function Home(props: any) {
   const [posts, setPosts] = useState(props.posts);
   const [loading, setLoading] = useState(false);
   const [postsEnd, setPostsEnd] = useState(false);
